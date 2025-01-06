@@ -3,6 +3,8 @@
 #include "RCObject.hpp"
 
 namespace tinysmartpointer {
+
+// TODO: (garvey) to inherit from enable_shared_from_this(weak_ptr)
 template <class T>
 class SharedPointer {
  public:
