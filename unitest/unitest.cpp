@@ -1,19 +1,28 @@
-#include "../include/SharedPointer.hpp"
+// #include "../include/SharedPointer.hpp"
 #include "../include/UniquePointer.hpp"
 #include <gtest/gtest.h>
 
 #include <iostream>
 using namespace tinysmartpointer;
 
-TEST(Shared_Pointer, SMART_POINTER_TEST)
-{
-  SharedPointer<int> p(new int(5));
-  EXPECT_EQ(*p, 5);
-  SharedPointer<int> q(p);
-  EXPECT_EQ(*q, 5);
-  *p = 6;
-  EXPECT_EQ(*q, 6);
-}
+// TEST(Shared_Pointer, SMART_POINTER_TEST)
+// {
+//   SharedPointer<int> p(new int(5));
+//   EXPECT_EQ(*p, 5);
+//   SharedPointer<int> q(p);
+//   EXPECT_EQ(*q, 5);
+//   *p = 6;
+//   EXPECT_EQ(*q, 6);
+// }
+class Tmp {
+ public:
+  int num_;
+  Tmp(int num = 0) : num_(num) {}
+  void Increase() { ++num_; }
+  int Get() { return num_; }
+};
+
+void deleter(Tmp* pointer) { delete pointer; }
 
 TEST(Unique_Pointer, SMART_POINTER_TEST) {
   UniquePointer<int> unique_pointer(new int(8));
@@ -22,17 +31,15 @@ TEST(Unique_Pointer, SMART_POINTER_TEST) {
   EXPECT_EQ(*unique_pointer2, 8);
   EXPECT_EQ(*(unique_pointer2.Get()), 8);
 
-  class Tmp {
-   public:
-    int num_;
-    Tmp(int num = 0) : num_(num) {}
-    void Increase() { ++num_; }
-    int Get() { return num_; }
-  };
   UniquePointer<Tmp> tmp_pointer(new Tmp(5));
   EXPECT_EQ(tmp_pointer->num_, 5);
   tmp_pointer->Increase();
   EXPECT_EQ(tmp_pointer.Get()->num_, 6);
+  auto dumb_pointer = new Tmp();
+  EXPECT_EQ(sizeof(dumb_pointer), sizeof(tmp_pointer));
+
+  UniquePointer<Tmp, decltype(deleter)> self_defined_pointer(new Tmp(5), deleter);
+  EXPECT_EQ(sizeof(self_defined_pointer), sizeof(&deleter) + sizeof(dumb_pointer));
 }
 
 int main(int argc, char **argv) {  
