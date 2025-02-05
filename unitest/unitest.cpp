@@ -20,6 +20,13 @@ class Tmp {
   Tmp(int num = 0) : num_(num) {}
   void Increase() { ++num_; }
   int Get() { return num_; }
+
+  virtual ~Tmp() {}
+};
+
+class Derive : public Tmp {
+ public:
+  explicit Derive(int num) : Tmp(num) {}
 };
 
 void deleter(Tmp* pointer) { delete pointer; }
@@ -40,6 +47,12 @@ TEST(Unique_Pointer, SMART_POINTER_TEST) {
 
   UniquePointer<Tmp, decltype(deleter)> self_defined_pointer(new Tmp(5), deleter);
   EXPECT_EQ(sizeof(self_defined_pointer), sizeof(&deleter) + sizeof(dumb_pointer));
+
+  UniquePointer<Derive> unique_pointer3(new Derive(5));
+  UniquePointer<Tmp> unique_pointer4(std::move(unique_pointer3));
+
+  auto unique_pointer5(MakeUnique<Tmp>(10));
+  EXPECT_EQ(unique_pointer5->num_, 10);
 }
 
 int main(int argc, char **argv) {  

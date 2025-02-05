@@ -1,8 +1,10 @@
 #ifndef UNIQUEPOINTER_HPP_
 #define UNIQUEPOINTER_HPP_
 
+#include <cassert>
 #include <iostream>
 #include <memory>
+#include <type_traits>
 
 namespace tinysmartpointer {
 
@@ -13,16 +15,15 @@ class UniquePointer {
 
   // constructor
   template <typename DeleterType>
-  constexpr UniquePointer(T* pointer, DeleterType&& deleter) {
-    deleter_ = std::forward<DeleterType>(deleter);
-    pointer_ = static_cast<T*>(pointer);
-  }
+  constexpr UniquePointer(T* pointer, DeleterType&& deleter)
+      : pointer_(static_cast<T*>(pointer)),
+        deleter_(std::forward<DeleterType>(deleter)) {}
 
-  explicit UniquePointer(T* pointer)
+  explicit constexpr UniquePointer(T* pointer)
       : deleter_(std::move(std::default_delete<T>())),
         pointer_(static_cast<T*>(pointer)) {}
 
-  UniquePointer()
+  constexpr UniquePointer()
       : deleter_(std::move(std::default_delete<T>())), pointer_(nullptr) {}
 
   // destructor
@@ -47,31 +48,53 @@ class UniquePointer {
     unique_pointer.deleter_ = std::move(std::default_delete<T>());
   }
 
+  template <typename BaseType,
+            typename = std::enable_if_t<std::is_base_of<T, BaseType>::value>>
+  UniquePointer(UniquePointer<BaseType>&& unique_pointer)
+      : pointer_(unique_pointer.Release()),
+        deleter_(unique_pointer.Get_deleter()) {}
+
   // move assignment
-  UniquePointer& operator=(UniquePointer&& rhs) {
+  template <typename BaseType,
+            typename = std::enable_if<std::is_base_of<T, BaseType>::value>>
+  UniquePointer& operator=(UniquePointer<BaseType>&& rhs) {
     if (this == &rhs) {
       return;
     }
     if (nullptr != this->pointer_) {
       deleter_(this->pointer_);
     }
-    this->pointer_ = std::move(rhs.pointer_);
-    rhs.pointer_ = nullptr;
-    this->pointer = std::move(rhs.deleter_);
-    rhs.deleter_ = std::move(std::default_delete<T>());
+    this->pointer_ = rhs.Release();
+    this->pointer = rhs.Get_deleter();
     return *this;
   }
 
-  // TODO: (garvey) proxy
   T& operator*() const {
-    // assert(nullptr != unique_pointer.pointer_);
+    assert(nullptr != this->pointer_);  // dangerous operator
     return *(this->pointer_);
   }
 
   T* operator->() const { return &(this->operator*()); }
 
+  operator void*() const {
+    enum class IFNULL { NULL1 = 0 };
+    if (nullptr == this->pointer_) {
+      return IFNULL::NULL1;
+    } else {
+      return reinterpret_cast<void*>(this->pointer_);
+    }
+  }
+
+  explicit operator bool() const {
+    return nullptr != this->Get();
+  }
+
   // return dumb pointer
   T* Get() const { return this->pointer_; }
+
+  const DecayedDeleter& Get_deleter() const { return this->deleter_; }
+
+  DecayedDeleter& Get_deleter() { return this->deleter_; }
 
   void Reset(const T* new_pointer = nullptr) {
     if (this->pointer_ == new_pointer) {
@@ -82,6 +105,16 @@ class UniquePointer {
     std::move(*this, tmp_unique_pointer);
   }
 
+  T* Release() {
+    T* dumb_pointer = this->pointer_;
+    this->pointer_ = nullptr;
+    return dumb_pointer;
+  }
+
+  void swap(UniquePointer& other) {
+    std::swap(this->pointer_, other.pointer_);
+  }
+
   // TODO
   // operator SharedPointer<T>() {}
 
@@ -89,6 +122,11 @@ class UniquePointer {
   T* pointer_;
   [[no_unique_address]] DecayedDeleter deleter_;
 };
+
+template <typename T, typename... Ts>
+UniquePointer<T> MakeUnique(Ts&&... params) {
+  return UniquePointer<T>(new T(std::forward<Ts>(params)...));
+}
 
 }  // namespace tinysmartpointer
 
