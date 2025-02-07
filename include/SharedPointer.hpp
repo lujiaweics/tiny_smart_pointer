@@ -8,36 +8,68 @@ namespace tinysmartpointer {
 template <typename T>
 class SharedPointer {
  public:
- using Deleter = std::default_delete<T>;
+  using Deleter = std::default_delete<T>;
   // constructor
-  // TODO: (garvey) to set user define deleter
-  explicit SharedPointer(T* p = nullptr)
-      : control_block_pointer_(new control_block_pointer_<T>(p)),
-        data_pointer_(p) {}
+  SharedPointer() : control_block_pointer_(nullptr), data_pointer_(nullptr) {}
+
+  explicit SharedPointer(T* p)
+      : control_block_pointer_(nullptr), data_pointer_(p) {
+    if (nullptr != p) {
+      control_block_pointer_ = new ControlBlock<T>(p);
+    }
+  }
+
+  SharedPointer(T* p, Deleter user_defined_deleter)
+      : data_pointer_(p), control_block_pointer_(nullptr) {
+    if (nullptr != p) {
+      control_block_pointer_ =
+          new ControlBlock<T>(p, user_defined_deleter);
+    }
+  }
 
   explicit SharedPointer(const SharedPointer<T>& p) {
     this->control_block_pointer_ = p.control_block_pointer_;
+    this->data_pointer_ = p.data_pointer_;
     this->IncRef();
   }
 
-  // TODO: (garvey) initial by make_shared
-
   // destructor
-  ~SharedPointer() {
-    this->control_block_pointer_->Decrease();
+  ~SharedPointer() { this->control_block_pointer_->DecRef(); }
+
+  T& operator*() const {
+    return *(this->data_pointer_);
   }
 
-  T& operator*() { return this->reference_counter_->GetNum(); }
+  int UseCount() const {
+    if (nullptr == data_pointer_) {
+      return 0;
+    }
+    return this->control_block_pointer_->GetNum();
+  }
+
+  bool Unique() const {
+    if (nullptr == this->data_pointer_) {
+      return false;
+    }
+
+    if (1 == this->UseCount()) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  T* Get() const { return this->data_pointer_; }
 
  private:
-  T* data_pointer_;  // pointer to data
+  T* data_pointer_;                         // pointer to data
   ControlBlock<T>* control_block_pointer_;  // pointer to control block
   Deleter deleter;
 
-  void IncRef() {
-    this->control_block_pointer_->IncRef();
-  }
+  void IncRef() { this->control_block_pointer_->IncRef(); }
 };
+
+// TODO: (garvey) initial by make_shared
 
 }  // namespace tinysmartpointer
 #endif

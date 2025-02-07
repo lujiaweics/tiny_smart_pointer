@@ -11,37 +11,38 @@ namespace tinysmartpointer {
 template <typename T>
 class ControlBlock {
  public:
+  using Deleter = std::default_delete<T>;
+
   // constructor
-  template <typename Deleter = std::default_delete<T>>
-  ControlBlock(T *p, Deleter deleter)
-      : reference_count_{1}, weak_count_{0}, pointer_(static_cast<T *>(p)), deleter(deleter) {}
+  ControlBlock(T *p = nullptr, Deleter deleter = std::default_delete<T>())
+      : reference_count_{1},
+        pointer_(static_cast<T *>(p)),
+        deleter(std::move(deleter)) {}
 
   // destructor
   ~ControlBlock() {
-    if (0 == reference_count_) {
-      delete pointer_;
+    if (0 == this->reference_count_ && nullptr != this->pointer_) {
+      deleter(pointer_);
       pointer_ = nullptr;
     }
   }
 
-  void Increase() { ++this->reference_count_; }
+  void IncRef() { ++this->reference_count_; }
 
-  void Decrease() {
+  void DecRef() {
     --this->reference_count_;
-    if (nullptr != this->pointer_ && 0 == this->reference_count_.load(std::memory_order_release)) {
-      deleter(this->pointer_);
+    if (0 == this->reference_count_) {
+      delete this;
     }
   }
 
-  T *Get() { return this->pointer_; }
-
-  T& GetNum() { return *(this->pointer_); }
+  int GetNum() { return reference_count_.load(); }
 
  private:
   T *pointer_;
   std::atomic<int> reference_count_;
-  std::atomic<int> weak_count_;
+  // std::atomic<int> weak_count_;
   Deleter deleter;
 };
-}  // namespace tiny_smartpointer_
+}  // namespace tinysmartpointer
 #endif

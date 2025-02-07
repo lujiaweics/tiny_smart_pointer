@@ -59,7 +59,7 @@ class UniquePointer {
             typename = std::enable_if<std::is_base_of<T, BaseType>::value>>
   UniquePointer& operator=(UniquePointer<BaseType>&& rhs) {
     if (this == &rhs) {
-      return;
+      return *this;
     }
     if (nullptr != this->pointer_) {
       deleter_(this->pointer_);

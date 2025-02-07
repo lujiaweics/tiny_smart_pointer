@@ -1,19 +1,10 @@
-// #include "../include/SharedPointer.hpp"
+#include "../include/SharedPointer.hpp"
 #include "../include/UniquePointer.hpp"
 #include <gtest/gtest.h>
 
 #include <iostream>
 using namespace tinysmartpointer;
 
-// TEST(Shared_Pointer, SMART_POINTER_TEST)
-// {
-//   SharedPointer<int> p(new int(5));
-//   EXPECT_EQ(*p, 5);
-//   SharedPointer<int> q(p);
-//   EXPECT_EQ(*q, 5);
-//   *p = 6;
-//   EXPECT_EQ(*q, 6);
-// }
 class Tmp {
  public:
   int num_;
@@ -53,6 +44,20 @@ TEST(Unique_Pointer, SMART_POINTER_TEST) {
 
   auto unique_pointer5(MakeUnique<Tmp>(10));
   EXPECT_EQ(unique_pointer5->num_, 10);
+}
+
+TEST(Shared_Pointer, SMART_POINTER_TEST) {
+  SharedPointer<int> p(new int(5));
+  EXPECT_EQ(*p, 5);
+  {
+    SharedPointer<int> q(p);
+    EXPECT_EQ(*q, 5);
+    EXPECT_EQ(q.UseCount(), 2);
+    EXPECT_FALSE(q.Unique());
+  }
+  EXPECT_EQ(p.UseCount(), 1);
+  *p = 6;
+  EXPECT_EQ(*p, 6);
 }
 
 int main(int argc, char **argv) {  
