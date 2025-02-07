@@ -1,13 +1,14 @@
 #ifndef SharedPointer_HPP_
 #define SharedPointer_HPP_
-// #include "ControlBlock.hpp"
+#include "ControlBlock.hpp"
 
 namespace tinysmartpointer {
 
 // TODO: (garvey) to inherit from enable_shared_from_this(weak_ptr)
-template <class T>
+template <typename T>
 class SharedPointer {
  public:
+ using Deleter = std::default_delete<T>;
   // constructor
   // TODO: (garvey) to set user define deleter
   explicit SharedPointer(T* p = nullptr)
@@ -23,19 +24,15 @@ class SharedPointer {
 
   // destructor
   ~SharedPointer() {
-    if (0 == this->reference_counter_->Decrease()) {
-      delete this->reference_counter_;
-      this->reference_counter_ = nullptr;
-    }
+    this->control_block_pointer_->Decrease();
   }
 
   T& operator*() { return this->reference_counter_->GetNum(); }
 
  private:
-  ControlBlock<T>* control_block_pointer_;  // pointer to control block
-  /* the reason why data pointer is not set in control block is may be the
-   * deleter is also in control block */
   T* data_pointer_;  // pointer to data
+  ControlBlock<T>* control_block_pointer_;  // pointer to control block
+  Deleter deleter;
 
   void IncRef() {
     this->control_block_pointer_->IncRef();
