@@ -38,6 +38,10 @@ class ControlBlock {
 
   int GetNum() { return reference_count_.load(); }
 
+  Deleter* GetDeleter() {
+    return &deleter;
+  }
+
  private:
   T *pointer_;
   std::atomic<int> reference_count_;

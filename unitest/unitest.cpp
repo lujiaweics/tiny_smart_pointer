@@ -58,6 +58,11 @@ TEST(Shared_Pointer, SMART_POINTER_TEST) {
   EXPECT_EQ(p.UseCount(), 1);
   *p = 6;
   EXPECT_EQ(*p, 6);
+
+  using Pair = std::pair<int, int>;
+  SharedPointer<std::pair<int, int>> pair_pointer(new Pair(4, 5));
+  SharedPointer<int> pair_to_second(pair_pointer, &(pair_pointer->second));
+  EXPECT_EQ(*pair_to_second, 5);
 }
 
 int main(int argc, char **argv) {  

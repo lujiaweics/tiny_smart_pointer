@@ -33,11 +33,27 @@ class SharedPointer {
     this->IncRef();
   }
 
+  // copy construct from an existed shared_ptr but not pointer to origin address
+  template <typename Ty>
+  SharedPointer(const SharedPointer<Ty>& p, T* ptr) {
+    this->control_block_pointer_ = p.control_block_pointer_;  // TODO: earse control block type
+    this->data_pointer_ = ptr;
+    this->IncRef();
+  }
+
   // destructor
-  ~SharedPointer() { this->control_block_pointer_->DecRef(); }
+  ~SharedPointer() {
+    if (this->control_block_pointer_) {
+      this->control_block_pointer_->DecRef();
+    }
+  }
 
   T& operator*() const {
     return *(this->data_pointer_);
+  }
+
+  T* operator->() const {
+    return &(this->operator*());
   }
 
   int UseCount() const {
@@ -60,6 +76,9 @@ class SharedPointer {
   }
 
   T* Get() const { return this->data_pointer_; }
+
+  template <typename Ty>
+  friend class SharedPointer;
 
  private:
   T* data_pointer_;                         // pointer to data
