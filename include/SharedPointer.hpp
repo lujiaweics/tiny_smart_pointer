@@ -1,94 +1,94 @@
 #ifndef SharedPointer_HPP_
 #define SharedPointer_HPP_
-#include "ControlBlock.hpp"
 
 namespace tinysmartpointer {
 
-// TODO: (garvey) to inherit from enable_shared_from_this(weak_ptr)
-template <typename T>
-class SharedPointer {
+template<typename _T>
+class WeakPointer;
+
+class ControlBlockBase {
  public:
-  using Deleter = std::default_delete<T>;
-  // constructor
-  SharedPointer() : control_block_pointer_(nullptr), data_pointer_(nullptr) {}
+  ControlBlockBase() : weak_count(0), shared_count(0) {};
 
-  explicit SharedPointer(T* p)
-      : control_block_pointer_(nullptr), data_pointer_(p) {
-    if (nullptr != p) {
-      control_block_pointer_ = new ControlBlock<T>(p);
-    }
+  virtual ~ControlBlockBase() = 0;
+
+  long UseCount() const {
+    return static_cast<int>(this->shared_count);
   }
-
-  SharedPointer(T* p, Deleter user_defined_deleter)
-      : data_pointer_(p), control_block_pointer_(nullptr) {
-    if (nullptr != p) {
-      control_block_pointer_ =
-          new ControlBlock<T>(p, user_defined_deleter);
-    }
-  }
-
-  explicit SharedPointer(const SharedPointer<T>& p) {
-    this->control_block_pointer_ = p.control_block_pointer_;
-    this->data_pointer_ = p.data_pointer_;
-    this->IncRef();
-  }
-
-  // copy construct from an existed shared_ptr but not pointer to origin address
-  template <typename Ty>
-  SharedPointer(const SharedPointer<Ty>& p, T* ptr) {
-    this->control_block_pointer_ = p.control_block_pointer_;  // TODO: earse control block type
-    this->data_pointer_ = ptr;
-    this->IncRef();
-  }
-
-  // destructor
-  ~SharedPointer() {
-    if (this->control_block_pointer_) {
-      this->control_block_pointer_->DecRef();
-    }
-  }
-
-  T& operator*() const {
-    return *(this->data_pointer_);
-  }
-
-  T* operator->() const {
-    return &(this->operator*());
-  }
-
-  int UseCount() const {
-    if (nullptr == data_pointer_) {
-      return 0;
-    }
-    return this->control_block_pointer_->GetNum();
-  }
-
-  bool Unique() const {
-    if (nullptr == this->data_pointer_) {
-      return false;
-    }
-
-    if (1 == this->UseCount()) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  T* Get() const { return this->data_pointer_; }
-
-  template <typename Ty>
-  friend class SharedPointer;
-
  private:
-  T* data_pointer_;                         // pointer to data
-  ControlBlock<T>* control_block_pointer_;  // pointer to control block
-  Deleter deleter;
-
-  void IncRef() { this->control_block_pointer_->IncRef(); }
+  std::atomic<int> weak_count;
+  std::atomic<int> shared_count;
 };
 
-// TODO: (garvey) initial by make_shared
+template<typename _T>
+class ControlBlockImpl : public ControlBlockBase{
+ public:
+
+ private:
+  T_ *ptr;
+  [[no_unique_address]] Deleter _Del;
+};
+
+template <typename _T>
+class SharedPointer {
+ public:
+  // constructor
+  SharedPointer() : ptr(nullptr), control_block(nullptr) {}
+
+  template<typename _Ty>
+  SharedPointer(_Ty *pointer) {
+    if (nullptr == pointer) {
+      *this(SharedPinter());
+    } else {
+      // enable_shared_from_this
+    }
+  }
+  
+  SharedPointer(const WeakPointer<_T> &weak_pointer) {
+    // TODO
+  }
+
+  // copy constructor
+  template <typename _Ty,
+            typename = std::enable_if_t<std::is_base_of<_T, _Ty>::value> ||
+                       std::is_same_v<_T, _Ty>>
+  SharedPointer(const SharedPointer &pointer) {
+    this->ptr = pointer.ptr;
+    this->control_block = pointer.control_block;
+    this->control_block->IncRef();
+  }
+
+  // copy assignment
+  operator=(const SharedPointer& pointer) {
+    if (pointer.Expire()) {
+
+    }
+  }
+
+  long UseCount() const {
+    if (nullptr != this->control_block) {
+      return this->control_block->UseCount();
+    }
+  }
+
+ private:
+  _T *ptr;
+  ControlBlockBase *control_block;
+};
+
+template<typename _T>
+class WeakPointer {
+ public:
+
+
+  bool Expire() const {
+    // TODO
+  }
+
+ private:
+  _T *ptr;
+  ControlBlockBase *cb;
+};
 
 }  // namespace tinysmartpointer
 #endif
