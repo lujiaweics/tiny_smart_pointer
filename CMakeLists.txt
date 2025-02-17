@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.5)
 
-PROJECT(TinySmartPointer CXX)
+PROJECT(TinySmartPointerUnitest CXX)
 
 SET(CMAKE_CXX_COMPILER clang++)
 
