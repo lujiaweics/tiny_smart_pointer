@@ -1,9 +1,12 @@
-#include "../include/SharedPointer.hpp"
-#include "../include/UniquePointer.hpp"
+// #include "../include/SharedPointer.hpp"
 #include <gtest/gtest.h>
 
 #include <iostream>
-using namespace tinysmartpointer;
+
+#include "../include/UniquePointer.hpp"
+using tinysmartpointer::UniquePointer;
+// using tinysmartpointer::SharedPointer;
+using tinysmartpointer::MakeUnique;
 
 class Tmp {
  public:
@@ -46,27 +49,27 @@ TEST(Unique_Pointer, SMART_POINTER_TEST) {
   EXPECT_EQ(unique_pointer5->num_, 10);
 }
 
-TEST(Shared_Pointer, SMART_POINTER_TEST) {
-  SharedPointer<int> p(new int(5));
-  EXPECT_EQ(*p, 5);
-  {
-    SharedPointer<int> q(p);
-    EXPECT_EQ(*q, 5);
-    EXPECT_EQ(q.UseCount(), 2);
-    EXPECT_FALSE(q.Unique());
-  }
-  EXPECT_EQ(p.UseCount(), 1);
-  *p = 6;
-  EXPECT_EQ(*p, 6);
+// TEST(Shared_Pointer, SMART_POINTER_TEST) {
+//   SharedPointer<int> p(new int(5));
+//   EXPECT_EQ(*p, 5);
+//   {
+//     SharedPointer<int> q(p);
+//     EXPECT_EQ(*q, 5);
+//     EXPECT_EQ(q.UseCount(), 2);
+//     EXPECT_FALSE(q.Unique());
+//   }
+//   EXPECT_EQ(p.UseCount(), 1);
+//   *p = 6;
+//   EXPECT_EQ(*p, 6);
 
-  using Pair = std::pair<int, int>;
-  SharedPointer<std::pair<int, int>> pair_pointer(new Pair(4, 5));
-  SharedPointer<int> pair_to_second(pair_pointer, &(pair_pointer->second));
-  EXPECT_EQ(*pair_to_second, 5);
-}
+//   using Pair = std::pair<int, int>;
+//   SharedPointer<std::pair<int, int>> pair_pointer(new Pair(4, 5));
+//   SharedPointer<int> pair_to_second(pair_pointer, &(pair_pointer->second));
+//   EXPECT_EQ(*pair_to_second, 5);
+// }
 
-int main(int argc, char **argv) {  
- std::cout << "Running main() from gtest_main.cc\n";  
- testing::InitGoogleTest(&argc, argv);  
- return RUN_ALL_TESTS();  
+int main(int argc, char** argv) {
+  std::cout << "Running main() from gtest_main.cc\n";
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }

@@ -1,6 +1,6 @@
 # TinySmartPointer 🧠
 
-一个轻量级C++智能指针实现库，包含`UniquePointer`、`SharedPointer`和`WeakPointer`的核心功能实现，支持C++11及以上标准。
+一个轻量级C++智能指针实现库，包含`UniquePointer`、`SharedPointer`和`WeakPointer`的核心功能实现，支持C++20及以上标准。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -28,27 +28,19 @@
 │ ├── SharedPointer.hpp # SharedPointer/WeakPointer及相关模板类
 │ └── UniquePointer.hpp # UniquePointer及相关模板类
 ├── unitest/
-│ ├── gtest.cpp # Google Test单元测试用例
-│ └── CMakeLists.txt # 测试构建配置
-├── CMakeLists.txt # 主项目构建文件
+│ └── unitest.cpp # Google-Test单元测试用例
+├── CMakeLists.txt # 项目构建文件
 ├── README.md # 文档文件
+├── run_test.sh # 编译并运行单元测试脚本
 └── LICENSE # MIT许可证
 ```
 
 ## 🛠 构建与测试
 
-**环境要求**：CMake 3.5+, 支持C++11的编译器
+**环境要求**：CMake 3.10+, 支持C++20的编译器
 
 ```bash
-# 克隆仓库
-git clone https://github.com/yourusername/TinySmartPointer.git
-cd TinySmartPointer
-
-# 构建及运行测试
-mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make
-./TinySmartPointerUnitest  # 运行单元测试
+./run_test.sh
 ```
 
 ## 🚧 开发状态

@@ -16,15 +16,12 @@ class UniquePointer {
   // constructor
   template <typename DeleterType>
   constexpr UniquePointer(T* pointer, DeleterType&& deleter)
-      : pointer_(static_cast<T*>(pointer)),
-        deleter_(std::forward<DeleterType>(deleter)) {}
+      : pointer_(static_cast<T*>(pointer)), deleter_(std::forward<DeleterType>(deleter)) {}
 
   explicit constexpr UniquePointer(T* pointer)
-      : deleter_(std::move(std::default_delete<T>())),
-        pointer_(static_cast<T*>(pointer)) {}
+      : deleter_(std::move(std::default_delete<T>())), pointer_(static_cast<T*>(pointer)) {}
 
-  constexpr UniquePointer()
-      : deleter_(std::move(std::default_delete<T>())), pointer_(nullptr) {}
+  constexpr UniquePointer() : deleter_(std::move(std::default_delete<T>())), pointer_(nullptr) {}
 
   // destructor
   ~UniquePointer() {
@@ -48,15 +45,12 @@ class UniquePointer {
     unique_pointer.deleter_ = std::move(std::default_delete<T>());
   }
 
-  template <typename BaseType,
-            typename = std::enable_if_t<std::is_base_of<T, BaseType>::value>>
+  template <typename BaseType, typename = std::enable_if_t<std::is_base_of<T, BaseType>::value>>
   UniquePointer(UniquePointer<BaseType>&& unique_pointer)
-      : pointer_(unique_pointer.Release()),
-        deleter_(unique_pointer.Get_deleter()) {}
+      : pointer_(unique_pointer.Release()), deleter_(unique_pointer.Get_deleter()) {}
 
   // move assignment
-  template <typename BaseType,
-            typename = std::enable_if<std::is_base_of<T, BaseType>::value>>
+  template <typename BaseType, typename = std::enable_if<std::is_base_of<T, BaseType>::value>>
   UniquePointer& operator=(UniquePointer<BaseType>&& rhs) {
     if (this == &rhs) {
       return *this;
@@ -85,9 +79,7 @@ class UniquePointer {
     }
   }
 
-  explicit operator bool() const {
-    return nullptr != this->Get();
-  }
+  explicit operator bool() const { return nullptr != this->Get(); }
 
   // return dumb pointer
   T* Get() const { return this->pointer_; }
@@ -111,9 +103,7 @@ class UniquePointer {
     return dumb_pointer;
   }
 
-  void swap(UniquePointer& other) {
-    std::swap(this->pointer_, other.pointer_);
-  }
+  void swap(UniquePointer& other) { std::swap(this->pointer_, other.pointer_); }
 
   // TODO
   // operator SharedPointer<T>() {}
