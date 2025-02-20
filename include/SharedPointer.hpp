@@ -1,93 +1,117 @@
-// #ifndef SharedPointer_HPP_
-// #define SharedPointer_HPP_
+#ifndef SharedPointer_HPP_
+#define SharedPointer_HPP_
 
-// namespace tinysmartpointer {
+#include <atomic>
 
-// template<typename _T>
-// class WeakPointer;
+namespace tinysmartpointer {
 
-// class ControlBlockBase {
-//  public:
-//   ControlBlockBase() : weak_count(0), shared_count(0) {};
+template <typename T>
+class WeakPointer;
 
-//   virtual ~ControlBlockBase() = 0;
+class Defalut_Delete {
+ public:
+  void operator()(void *ptr) { delete ptr; }
+};
 
-//   long UseCount() const {
-//     return static_cast<int>(this->shared_count);
-//   }
-//  private:
-//   std::atomic<int> weak_count;
-//   std::atomic<int> shared_count;
-// };
+template <typename T>
+class Enable_share_from_this {
+ public:
+  // TODO
+  void share_from_this() {}
 
-// template<typename _T>
-// class ControlBlockImpl : public ControlBlockBase{
-//  public:
+ private:
+  WeakPointer<T> weak_ptr;
+};
 
-//  private:
-//   T_ *ptr;
-//   [[no_unique_address]] Deleter _Del;
-// };
+class ControlBlockBase {
+ public:
+  ControlBlockBase() : weak_count{0}, shared_count{0} {};
 
-// template <typename _T>
-// class SharedPointer {
-//  public:
-//   // constructor
-//   SharedPointer() : ptr(nullptr), control_block(nullptr) {}
+  virtual ~ControlBlockBase() = 0;
 
-//   template<typename _Ty>
-//   SharedPointer(_Ty *pointer) {
-//     if (nullptr == pointer) {
-//       *this(SharedPinter());
-//     } else {
-//       // enable_shared_from_this
-//     }
-//   }
+  long UseCount() const { return static_cast<int>(this->shared_count); }
 
-//   SharedPointer(const WeakPointer<_T> &weak_pointer) {
-//     // TODO
-//   }
+ private:
+  std::atomic<int> weak_count;
+  std::atomic<int> shared_count;
+};
 
-//   // copy constructor
-//   template <typename _Ty,
-//             typename = std::enable_if_t<std::is_base_of<_T, _Ty>::value> ||
-//                        std::is_same_v<_T, _Ty>>
-//   SharedPointer(const SharedPointer &pointer) {
-//     this->ptr = pointer.ptr;
-//     this->control_block = pointer.control_block;
-//     this->control_block->IncRef();
-//   }
+template <typename T, typename Deleter = Defalut_Delete>
+class ControlBlockImpl : public ControlBlockBase {
+ public:
+ private:
+  T *ptr;
+  [[no_unique_address]] Deleter _Del;
+};
 
-//   // copy assignment
-//   operator=(const SharedPointer& pointer) {
-//     if (pointer.Expire()) {
+template <typename T>
+class SharedPointer {
+ public:
+  // constructor
+  constexpr SharedPointer() : ptr(nullptr), control_block(nullptr) {}
 
-//     }
-//   }
+  constexpr SharedPointer(std::nullptr_t) : ptr(nullptr), control_block(nullptr) {}
 
-//   long UseCount() const {
-//     if (nullptr != this->control_block) {
-//       return this->control_block->UseCount();
-//     }
-//   }
+  template <typename Y, typename = std::is_convertible_v<Y, T> && !std::is_base_of_v<Y, Enable_share_from_this>>
+  explicit SharedPointer(Y *ptr) {
+    if (nullptr != ptr) {
+      this->ptr = ptr;
+      this->control_block = new ControlBlockImpl<T>(ptr);
+    } else {
+      this->ptr = nullptr;
+      this->control_block = nullptr;
+    }
+  }
 
-//  private:
-//   _T *ptr;
-//   ControlBlockBase *control_block;
-// };
+  template <typename Y>
+  SharedPointer(Y *pointer) {
+    if (nullptr == pointer) {
+      *this(SharedPinter());
+    } else {
+      // enable_shared_fromThis
+    }
+  }
 
-// template<typename _T>
-// class WeakPointer {
-//  public:
+  SharedPointer(const WeakPointer<T> &weak_pointer) {
+    // TODO
+  }
 
-//   bool Expire() const {
-//     // TODO
-//   }
+  // copy constructor
+  template <typename Y, typename = std::enable_if_t<std::is_base_of<T, Y>::value> || std::is_same_v<T, Y>>
+  SharedPointer(const SharedPointer &pointer) {
+    this->ptr = pointer.ptr;
+    this->control_block = pointer.control_block;
+    this->control_block->IncRef();
+  }
 
-//  private:
-//   _T *ptr;
-//   ControlBlockBase *cb;
-// };
+  // copy assignment
+  operator=(const SharedPointer &pointer) {
+    if (pointer.Expire()) {
+    }
+  }
 
-// }  // namespace tinysmartpointer
-// #endif
+  long UseCount() const {
+    if (nullptr != this->control_block) {
+      return this->control_block->UseCount();
+    }
+  }
+
+ private:
+  T *ptr;
+  ControlBlockBase *control_block;
+};
+
+template <typename T>
+class WeakPointer {
+ public:
+  bool Expire() const {
+    // TODO
+  }
+
+ private:
+  T *ptr;
+  ControlBlockBase *cb;
+};
+
+}  // namespace tinysmartpointer
+#endif
