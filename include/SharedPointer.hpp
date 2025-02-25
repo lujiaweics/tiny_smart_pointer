@@ -300,15 +300,75 @@ class SharedPointer final {
 };
 
 template <typename T>
-class WeakPointer {
+class WeakPointer final {
  public:
+  using element_type = T;
+
+  template <typename>
+  friend class SharedPointer;
+
+  template <typename>
+  friend class WeakPointer;
+
+  constexpr WeakPointer() : ptr(nullptr), cb(nullptr) {}
+
+  WeakPointer(const WeakPointer &r) : {
+    if (nullptr != r.control_block) {
+      r.control_block->IncWeakRef();
+      this->control_block = r.control_block;
+      this->ptr = r.ptr;
+    } else {
+      this->control_block = nullptr;
+      this->ptr = nullptr;
+    }
+  }
+
+  template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
+  WeakPointer(const WeakPointer<Y> &r) {
+    if (nullptr != r.control_block) {
+      r.control_block->IncWeakRef();
+      this->control_block = r.control_block;
+      this->ptr = r.ptr;
+    } else {
+      this->control_block = nullptr;
+      this->ptr = nullptr;
+    }
+  }
+
+  template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
+  WeakPointer(const SharedPointer<Y> &r) {
+    if (nullptr != r.control_block) {
+      r.control_block->IncWeakRef();
+      this->control_block = r.control_block;
+      this->ptr = r.ptr;
+    } else {
+      this->control_block = nullptr;
+      this->ptr = nullptr;
+    }
+  }
+
+  WeakPointer(WeakPointer &&r) {
+    this->control_block = r.control_block;
+    this->ptr = r.ptr;
+    r.ptr = nullptr;
+    r.control_block = nullptr;
+  }
+
+  template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
+  WeakPointer(WeakPointer<Y> &&r) {
+    this->control_block = r.control_block;
+    this->ptr = r.ptr;
+    r.ptr = nullptr;
+    r.control_block = nullptr;
+  }
+
   bool Expire() const {
     // TODO
   }
 
  private:
   T *ptr;
-  ControlBlockBase *cb;
+  ControlBlockBase *control_block;
 };
 
 }  // namespace tinysmartpointer
