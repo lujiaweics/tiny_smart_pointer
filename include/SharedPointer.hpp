@@ -43,6 +43,10 @@ class ControlBlockBase {
     }
   }
 
+  void IncWeakRef() { this->weak_count.fetch_add(1, std::memory_order_release); }
+
+  void DecWeakRef() { this->weak_count.fetch_add(-1, std::memory_order_release); }
+
   virtual void *Get_deleter(const std::type_info &) = 0;
 
  private:
@@ -173,9 +177,13 @@ class SharedPointer final {
   }
 
   template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
-  SharedPointer(const WeakPointer<Y> &weak_pointer) {
-    weak_pointer.lock();  // may throw bad_weak_ptr()
-    // TODO
+  SharedPointer(const WeakPointer<Y> &weak_pointer) { // may throw bad_weak_ptr()
+    SharedPointer shared_pointer = weak_pointer.lock();
+    if (shared_pointer) {
+      throw "bad_weak_ptr";
+    } else {
+      return shared_pointer;
+    }
   }
 
   template <typename Y, typename Deleter, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
@@ -284,7 +292,6 @@ class SharedPointer final {
 
   explicit operator bool() { return nullptr != this->Get(); }
 
-  // TODO: non-member function, or if null
   template <typename Deleter>
   Deleter *Get_deleter() {
     if (this->ptr) {
@@ -310,9 +317,9 @@ class WeakPointer final {
   template <typename>
   friend class WeakPointer;
 
-  constexpr WeakPointer() : ptr(nullptr), cb(nullptr) {}
+  constexpr WeakPointer() : ptr(nullptr), control_block(nullptr) {}
 
-  WeakPointer(const WeakPointer &r) : {
+  WeakPointer(const WeakPointer &r) {
     if (nullptr != r.control_block) {
       r.control_block->IncWeakRef();
       this->control_block = r.control_block;
@@ -362,9 +369,53 @@ class WeakPointer final {
     r.control_block = nullptr;
   }
 
-  bool Expire() const {
-    // TODO
+  ~WeakPointer() {
+    if (nullptr != this->control_block) {
+      this->control_block->DecWeakRef();
+    }
   }
+
+  WeakPointer &operator=(const WeakPointer &r) { WeakPointer(r).swap(*this); }
+
+  template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
+  WeakPointer &operator=(const WeakPointer<Y> &r) {
+    WeakPointer(r).swap(*this);
+  }
+
+  template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
+  WeakPointer &operator=(const SharedPointer<Y> &r) {
+    WeakPointer(r).swap(*this);
+  }
+
+  WeakPointer &operator=(WeakPointer &&r) { WeakPointer(std::move(r)).swap(*this); }
+
+  template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
+  WeakPointer &operator=(WeakPointer<Y> &&r) {
+    WeakPointer(std::move(r)).swap(*this);
+  }
+
+  void Swap(WeakPointer &r) {
+    T *tmp_ptr = r.ptr;
+    r.ptr = this->ptr;
+    this->ptr = tmp_ptr;
+    ControlBlockBase *tmp_cb_ptr = r.control_block;
+    r.control_block = this->control_block;
+    this->control_block = tmp_cb_ptr;
+  }
+
+  void Reset() { WeakPointer().swap(*this); }
+
+  long UseCount() {
+    if (nullptr == this->control_block) {
+      return 0;
+    } else {
+      return this->control_block->UseCount();
+    }
+  }
+
+  bool Expire() const { return 0 == this->UseCount(); }
+
+  SharedPointer<T> Lock() { return (this->Expire() ? SharedPointer<T>() : SharedPointer<T>(*this)); }
 
  private:
   T *ptr;

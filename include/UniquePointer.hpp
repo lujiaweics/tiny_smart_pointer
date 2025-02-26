@@ -105,9 +105,6 @@ class UniquePointer {
 
   void swap(UniquePointer& other) { std::swap(this->pointer_, other.pointer_); }
 
-  // TODO
-  // operator SharedPointer<T>() {}
-
  private:
   T* pointer_;
   [[no_unique_address]] DecayedDeleter deleter_;
