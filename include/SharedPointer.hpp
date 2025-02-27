@@ -12,19 +12,15 @@ template <typename T>
 class WeakPointer;
 
 template <typename T>
+class SharedPointer;
+
+template <typename T>
+class Enable_shared_from_this;
+
+template <typename T>
 class Defalut_Delete {
  public:
   void operator()(T *ptr) { delete ptr; }
-};
-
-template <typename T>
-class Enable_share_from_this {
- public:
-  // TODO
-  void share_from_this() {}
-
- private:
-  WeakPointer<T> weak_ptr;
 };
 
 class ControlBlockBase {
@@ -84,7 +80,7 @@ class SharedPointer final {
   constexpr SharedPointer(std::nullptr_t) : ptr(nullptr), control_block(nullptr) {}
 
   template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T> &&
-                                                    !std::is_base_of_v<Y, Enable_share_from_this<T>>>>
+                                                    !std::is_base_of_v<Y, Enable_shared_from_this<T>>>>
   explicit SharedPointer(Y *ptr) {
     if (nullptr != ptr) {
       this->ptr = ptr;
@@ -96,20 +92,25 @@ class SharedPointer final {
     }
   }
 
-  template <typename Y,
-            typename = std::enable_if_t<std::is_convertible_v<Y, T> && std::is_base_of_v<Y, Enable_share_from_this<T>>>,
-            int = 0>
+  template <
+      typename Y,
+      typename = std::enable_if_t<std::is_convertible_v<Y, T> && std::is_base_of_v<Y, Enable_shared_from_this<T>>>,
+      int = 0>
   explicit SharedPointer(Y *ptr) {
     if (nullptr == ptr) {
       this->ptr = ptr;
       this->control_block = nullptr;
     } else {
       // enable_shared_from_this
+      this->ptr = ptr;
+      this->control_block = new ControlBlockImpl<T>(ptr);
+      (static_cast<Enable_shared_from_this<T> *>(ptr))->Assign(this->ptr, this->control_block);
+      this->control_block->IncRef();
     }
   }
 
   template <typename Y, typename Deleter,
-            typename = std::enable_if_t<std::is_convertible_v<Y, T> && !std::is_base_of_v<Y, Enable_share_from_this>>>
+            typename = std::enable_if_t<std::is_convertible_v<Y, T> && !std::is_base_of_v<Y, Enable_shared_from_this>>>
   SharedPointer(Y *ptr, Deleter d) {
     if (nullptr != ptr) {
       this->ptr = ptr;
@@ -122,7 +123,7 @@ class SharedPointer final {
   }
 
   template <typename Y, typename Deleter,
-            typename = std::enable_if_t<std::is_convertible_v<Y, T> && !std::is_base_of_v<Y, Enable_share_from_this>>,
+            typename = std::enable_if_t<std::is_convertible_v<Y, T> && !std::is_base_of_v<Y, Enable_shared_from_this>>,
             int = 0>
   SharedPointer(Y *pointer, Deleter d) {
     if (nullptr == pointer) {
@@ -130,6 +131,10 @@ class SharedPointer final {
       this->control_block = nullptr;
     } else {
       // enable_shared_from_this
+      this->ptr = ptr;
+      this->control_block = new ControlBlockImpl<T, Deleter>(ptr, d);
+      (static_cast<Enable_shared_from_this<T> *>(ptr))->Assign(this->ptr, this->control_block);
+      this->control_block->IncRef();
     }
   }
 
@@ -177,13 +182,12 @@ class SharedPointer final {
   }
 
   template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
-  SharedPointer(const WeakPointer<Y> &weak_pointer) { // may throw bad_weak_ptr()
+  SharedPointer(const WeakPointer<Y> &weak_pointer) {  // may throw bad_weak_ptr()
     SharedPointer shared_pointer = weak_pointer.lock();
-    if (shared_pointer) {
+    if (!shared_pointer) {
       throw "bad_weak_ptr";
-    } else {
-      return shared_pointer;
     }
+    *this(shared_pointer);
   }
 
   template <typename Y, typename Deleter, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
@@ -317,6 +321,9 @@ class WeakPointer final {
   template <typename>
   friend class WeakPointer;
 
+  template <typename>
+  friend class Enable_shared_from_this;
+
   constexpr WeakPointer() : ptr(nullptr), control_block(nullptr) {}
 
   WeakPointer(const WeakPointer &r) {
@@ -420,6 +427,21 @@ class WeakPointer final {
  private:
   T *ptr;
   ControlBlockBase *control_block;
+};
+
+template <typename T>
+class Enable_shared_from_this {
+ public:
+  SharedPointer<T> shared_from_this() { return SharedPointer<T>(this->weak_ptr); }
+
+ private:
+  void Assign(T *ptr, ControlBlockBase *control_block) {
+    if (0 == control_block->UseCount()) {
+      this->weak_ptr.ptr = ptr;
+      this->weak_ptr.control_block = control_block;
+    }
+  }
+  WeakPointer<T> weak_ptr;
 };
 
 }  // namespace tinysmartpointer
