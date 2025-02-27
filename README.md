@@ -30,9 +30,9 @@
 ├── unitest/
 │ └── unitest.cpp # Google-Test单元测试用例
 ├── CMakeLists.txt # 项目构建文件
+├── LICENSE # MIT许可证
 ├── README.md # 文档文件
-├── run_test.sh # 编译并运行单元测试脚本
-└── LICENSE # MIT许可证
+└── run_test.sh # 编译并运行单元测试脚本
 ```
 
 ## 🛠 构建与测试
@@ -47,7 +47,9 @@
 当前为开发中版本，已实现的部分功能：
 1. UniquePointer基础功能
 2. MakeUnique函数
-3. UniquePointer部分测试用例
+3. SharedPointer基础功能
+4. WeakPointer基础功能
+5. Enable_shared_from_this基础功能
 
 
 ## 🤝 参与贡献

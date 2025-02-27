@@ -4,9 +4,9 @@
 
 #include "../include/SharedPointer.hpp"
 #include "../include/UniquePointer.hpp"
-using tinysmartpointer::MakeUnique;
-using tinysmartpointer::SharedPointer;
-using tinysmartpointer::UniquePointer;
+using TinySmartPointer::MakeUnique;
+using TinySmartPointer::SharedPointer;
+using TinySmartPointer::UniquePointer;
 
 class Tmp {
  public:

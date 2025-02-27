@@ -6,7 +6,7 @@
 
 #include "UniquePointer.hpp"
 
-namespace tinysmartpointer {
+namespace TinySmartPointer {
 
 template <typename T>
 class WeakPointer;
@@ -444,5 +444,5 @@ class Enable_shared_from_this {
   WeakPointer<T> weak_ptr;
 };
 
-}  // namespace tinysmartpointer
+}  // namespace TinySmartPointer
 #endif

@@ -6,7 +6,7 @@
 #include <memory>
 #include <type_traits>
 
-namespace tinysmartpointer {
+namespace TinySmartPointer {
 
 template <typename T, typename Deleter = std::default_delete<T>>
 class UniquePointer {
@@ -115,6 +115,6 @@ UniquePointer<T> MakeUnique(Ts&&... params) {
   return UniquePointer<T>(new T(std::forward<Ts>(params)...));
 }
 
-}  // namespace tinysmartpointer
+}  // namespace TinySmartPointer
 
 #endif
