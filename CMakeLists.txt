@@ -8,7 +8,8 @@ find_package(GTest REQUIRED)
 find_package(Threads REQUIRED)
 
 add_executable(tiny_smart_pointer_unitest
-    unitest/unitest.cpp
+    unitest/main.cpp
+    unitest/test_sharedpointer.cpp
 )
 
 target_include_directories(tiny_smart_pointer_unitest PRIVATE

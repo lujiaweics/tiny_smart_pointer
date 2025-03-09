@@ -1,0 +1,36 @@
+#include <gtest/gtest.h>
+
+
+// void deleter(Tmp* pointer) { delete pointer; }
+
+// TEST(Unique_Pointer, SMART_POINTER_TEST) {
+//   UniquePointer<int> unique_pointer(new int(8));
+//   EXPECT_EQ(*unique_pointer, 8);
+//   auto unique_pointer2 = std::move(unique_pointer);
+//   EXPECT_EQ(*unique_pointer2, 8);
+//   EXPECT_EQ(*(unique_pointer2.Get()), 8);
+
+//   UniquePointer<Tmp> tmp_pointer(new Tmp(5));
+//   EXPECT_EQ(tmp_pointer->num_, 5);
+//   tmp_pointer->Increase();
+//   EXPECT_EQ(tmp_pointer.Get()->num_, 6);
+//   auto dumb_pointer = new Tmp();
+//   EXPECT_EQ(sizeof(dumb_pointer), sizeof(tmp_pointer));
+
+//   UniquePointer<Tmp, decltype(deleter)> self_defined_pointer(new Tmp(5), deleter);
+//   EXPECT_EQ(sizeof(self_defined_pointer), sizeof(&deleter) + sizeof(dumb_pointer));
+
+//   UniquePointer<Derive> unique_pointer3(new Derive(5));
+//   UniquePointer<Tmp> unique_pointer4(std::move(unique_pointer3));
+
+//   auto unique_pointer5(MakeUnique<Tmp>(10));
+//   EXPECT_EQ(unique_pointer5->num_, 10);
+// }
+
+
+
+int main(int argc, char** argv) {
+  std::cout << "Running main() from gtest_main.cc\n";
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
