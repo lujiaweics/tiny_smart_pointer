@@ -31,7 +31,7 @@ class ControlBlockBase {
 
   long UseCount() const { return static_cast<long>(this->shared_count.load(std::memory_order_acquire)); }
 
-  void IncRef() { this->shared_count.fetch_add(1, std::memory_order_acq_rel); }
+  void IncRef() { this->shared_count.fetch_add(1, std::memory_order_relaxed); }
 
   void DecRef() {
     if (1 == this->shared_count.fetch_add(-1, std::memory_order_acq_rel)) {
@@ -39,7 +39,7 @@ class ControlBlockBase {
     }
   }
 
-  void IncWeakRef() { this->weak_count.fetch_add(1, std::memory_order_acq_rel); }
+  void IncWeakRef() { this->weak_count.fetch_add(1, std::memory_order_relaxed); }
 
   void DecWeakRef() { this->weak_count.fetch_add(-1, std::memory_order_acq_rel); }
 
@@ -54,7 +54,7 @@ template <typename T, typename Deleter = Defalut_Delete<T>>
 class ControlBlockImpl : public ControlBlockBase {
  public:
   ControlBlockImpl(T *p) : ptr(p), _Del(Defalut_Delete<T>()) {}
-  ControlBlockImpl(T *p, Deleter d) : ptr(p), _Del(std::move(d)) {}
+  ControlBlockImpl(T *p, Deleter &&d) : ptr(p), _Del(std::forward<Deleter>(d)) {}
 
   void *Get_deleter(const std::type_info &type) { return type == typeid(Deleter) ? &_Del : 0; }
 
@@ -74,9 +74,13 @@ class SharedPointer final {
   template <typename, typename>
   friend class UniquePointer;
 
+  constexpr SharedPointer() : ptr(nullptr), control_block(nullptr) {}
+
+  constexpr SharedPointer(std::nullptr_t) : ptr(nullptr), control_block(nullptr) {}
+
   // constructor
   template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T> &&
-                                                    !std::is_base_of_v<Y, Enable_shared_from_this<T>>>>
+                                                    !std::is_base_of_v<Enable_shared_from_this<Y>, Y>>>
   explicit SharedPointer(Y *ptr) {
     if (nullptr != ptr) {
       this->ptr = ptr;
@@ -90,7 +94,7 @@ class SharedPointer final {
 
   template <
       typename Y,
-      typename = std::enable_if_t<std::is_convertible_v<Y, T> && std::is_base_of_v<Y, Enable_shared_from_this<T>>>,
+      typename = std::enable_if_t<std::is_convertible_v<Y, T> && std::is_base_of_v<Enable_shared_from_this<Y>, Y>>,
       int = 0>
   explicit SharedPointer(Y *ptr) {
     if (nullptr == ptr) {
@@ -105,30 +109,32 @@ class SharedPointer final {
     }
   }
 
-  template <typename Y, typename Deleter,
-            typename = std::enable_if_t<std::is_convertible_v<Y, T> && !std::is_base_of_v<Y, Enable_shared_from_this>>>
-  SharedPointer(Y *ptr, Deleter d) {
+  template <
+      typename Y, typename Deleter,
+      typename = std::enable_if_t<std::is_convertible_v<Y, T> && !std::is_base_of_v<Enable_shared_from_this<Y>, Y>>>
+  SharedPointer(Y *ptr, Deleter &&d) {
     if (nullptr != ptr) {
       this->ptr = ptr;
-      this->control_block = new ControlBlockImpl<T, Deleter>(ptr, d);
+      this->control_block = new ControlBlockImpl<T, Deleter>(ptr, std::forward<Deleter>(d));
       this->control_block->IncRef();
     } else {
       this->ptr = nullptr;
-      this->control_block = nullptr;
+      this->control_block = new ControlBlockImpl<T, Deleter>(ptr, std::forward<Deleter>(d));
     }
   }
 
-  template <typename Y, typename Deleter,
-            typename = std::enable_if_t<std::is_convertible_v<Y, T> && !std::is_base_of_v<Y, Enable_shared_from_this>>,
-            int = 0>
-  SharedPointer(Y *pointer, Deleter d) {
-    if (nullptr == pointer) {
+  template <
+      typename Y, typename Deleter,
+      typename = std::enable_if_t<std::is_convertible_v<Y, T> && std::is_base_of_v<Enable_shared_from_this<Y>, Y>>,
+      int = 0>
+  SharedPointer(Y *ptr, Deleter &&d) {
+    if (nullptr == ptr) {
       this->ptr = ptr;
-      this->control_block = nullptr;
+      this->control_block = new ControlBlockImpl<T, Deleter>(ptr, std::forward<Deleter>(d));
     } else {
       // enable_shared_from_this
       this->ptr = ptr;
-      this->control_block = new ControlBlockImpl<T, Deleter>(ptr, d);
+      this->control_block = new ControlBlockImpl<T, Deleter>(ptr, std::forward<Deleter>(d));
       (static_cast<Enable_shared_from_this<T> *>(ptr))->Assign(this->ptr, this->control_block);
       this->control_block->IncRef();
     }
@@ -159,7 +165,9 @@ class SharedPointer final {
   SharedPointer(const SharedPointer<Y> &r) {
     this->ptr = r.ptr;
     this->control_block = r.control_block;
-    this->control_block->IncRef();
+    if (nullptr != this->control_block) {
+      this->control_block->IncRef();
+    }
   }
 
   SharedPointer(SharedPointer &&r) {
@@ -189,7 +197,7 @@ class SharedPointer final {
   template <typename Y, typename Deleter, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
   SharedPointer(UniquePointer<Y, Deleter> &&r) {
     this->ptr = r.Get();
-    this->control_block = new ControlBlockImpl<Y, Deleter>(this->ptr, r.Get_deleter());
+    this->control_block = new ControlBlockImpl<Y, Deleter>(this->ptr, *(r.Get_deleter()));
     this->control_block->IncRef();
     std::swap(r, UniquePointer<Y, Deleter>());
   }
@@ -208,9 +216,15 @@ class SharedPointer final {
     }
 
     this->ptr = r.ptr;
-    this->control_block->DecRef();
+    if (nullptr != this->control_block) {
+      this->control_block->DecRef();
+    }
     this->control_block = r.control_block;
-    this->control_block->IncRef();
+    if (nullptr != this->control_block) {
+      this->control_block->IncRef();
+    }
+
+    return *this;
   }
 
   template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
@@ -220,9 +234,15 @@ class SharedPointer final {
     }
 
     this->ptr = r.ptr;
-    this->control_block->DecRef();
+    if (nullptr != this->control_block) {
+      this->control_block->DecRef();
+    }
     this->control_block = r.control_block;
-    this->control_block->IncRef();
+    if (nullptr != this->control_block) {
+      this->control_block->IncRef();
+    }
+
+    return *this;
   }
 
   SharedPointer &operator=(SharedPointer &&r) {
@@ -234,6 +254,8 @@ class SharedPointer final {
     r.ptr = nullptr;
     this->control_block = r.control_block;
     r.control_block = nullptr;
+
+    return *this;
   }
 
   template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
@@ -246,12 +268,14 @@ class SharedPointer final {
     r.ptr = nullptr;
     this->control_block = r.control_block;
     r.control_block = nullptr;
+
+    return *this;
   }
 
   template <typename Y, typename Deleter, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
   SharedPointer &operator=(UniquePointer<Y, Deleter> &&r) {
     this->ptr = r.Release();
-    this->control_block = new ControlBlockImpl<Y, Deleter>(this->ptr, r.Get_deleter());
+    this->control_block = new ControlBlockImpl<Y, Deleter>(this->ptr, *(r.Get_deleter()));
     this->control_block->IncRef();
   }
 
@@ -287,6 +311,8 @@ class SharedPointer final {
   long UseCount() const {
     if (nullptr != this->control_block) {
       return this->control_block->UseCount();
+    } else {
+      return 0l;
     }
   }
 
@@ -430,6 +456,9 @@ class WeakPointer final {
 template <typename T>
 class Enable_shared_from_this {
  public:
+  template <typename>
+  friend class SharedPointer;
+
   SharedPointer<T> shared_from_this() { return SharedPointer<T>(this->weak_ptr); }
 
  private:

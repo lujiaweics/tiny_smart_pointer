@@ -9,7 +9,7 @@ class Base {
   void Increase() { ++num_; }
   void Derease() { --num_; }
   int GetNumber() { return num_; }
-  int SetNumber(int new_number) { this->num_ = new_number; }
+  void SetNumber(int new_number) { this->num_ = new_number; }
   virtual bool IsDerived() { return false; }
 
   virtual ~Base() {}
@@ -26,5 +26,11 @@ class Derive : public Base {
 };
 
 class SharedFromThis : public TinySmartPointer::Enable_shared_from_this<SharedFromThis> {};
+
+template <typename T>
+class Deleter {
+ public:
+  void operator()(T* pointer) { delete pointer; }
+};
 
 #endif

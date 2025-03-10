@@ -1,8 +1,5 @@
 #include <gtest/gtest.h>
 
-
-// void deleter(Tmp* pointer) { delete pointer; }
-
 // TEST(Unique_Pointer, SMART_POINTER_TEST) {
 //   UniquePointer<int> unique_pointer(new int(8));
 //   EXPECT_EQ(*unique_pointer, 8);
@@ -26,8 +23,6 @@
 //   auto unique_pointer5(MakeUnique<Tmp>(10));
 //   EXPECT_EQ(unique_pointer5->num_, 10);
 // }
-
-
 
 int main(int argc, char** argv) {
   std::cout << "Running main() from gtest_main.cc\n";
