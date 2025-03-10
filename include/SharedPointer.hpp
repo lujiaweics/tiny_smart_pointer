@@ -229,7 +229,7 @@ class SharedPointer final {
 
   template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
   SharedPointer &operator=(const SharedPointer<Y> &r) {
-    if (&r == this) {
+    if (reinterpret_cast<const void *>(&r) == reinterpret_cast<void *>(this)) {
       return *this;
     }
 
@@ -250,11 +250,7 @@ class SharedPointer final {
       return *this;
     }
 
-    this->ptr = r.ptr;
-    r.ptr = nullptr;
-    this->control_block = r.control_block;
-    r.control_block = nullptr;
-
+    SharedPointer(std::move(r)).Swap(*this);
     return *this;
   }
 

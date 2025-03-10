@@ -44,9 +44,30 @@ TEST(Constructor, SHARED_POINTER_TEST) {
   }
 }
 
-TEST(Copy_Constructor, SHARED_POINTER_TEST) {
-  SharedPointer<int> p1;
-  SharedPointer<int> p2;
-  p1 = p1;
-  p1 = p2;
+TEST(Assignment, SHARED_POINTER_TEST) {
+  {
+    SharedPointer<int> p1;
+    SharedPointer<int> p2;
+    p1 = p1;
+    p1 = p2;
+  }
+
+  {
+    SharedPointer<Derive> p1(new Derive());
+    SharedPointer<Derive> p2(new Derive());
+    p2 = p1;
+  }
+
+  {
+    SharedPointer<Derive> p1(new Derive());
+    SharedPointer<Base> p2(new Derive());
+    p2 = p1;
+  }
+
+  {
+    SharedPointer<Derive> p1(new Derive());
+    SharedPointer<Derive> p2;
+    p1 = std::move(p1);
+    p2 = std::move(p1);
+  }
 }
