@@ -70,4 +70,23 @@ TEST(Assignment, SHARED_POINTER_TEST) {
     p1 = std::move(p1);
     p2 = std::move(p1);
   }
+
+  {
+    SharedPointer<Derive> p1(new Derive());
+    SharedPointer<Base> p2(new Derive());
+    p2 = std::move(p1);
+  }
+}
+
+TEST(Member_Function, SHARED_POINTER_TEST) {
+  SharedPointer<Base>(new Derive()).Reset();
+  SharedPointer<Base>(new Derive()).Reset(new Derive());
+  SharedPointer<Base>(new Derive()).Reset(new Derive(), Deleter<Derive>());
+  SharedPointer<Base>(new Derive()).Get();
+  EXPECT_EQ(SharedPointer<Base>(new Derive()).UseCount(), 1);
+  EXPECT_EQ(SharedPointer<Base>().UseCount(), 0);
+  EXPECT_TRUE(SharedPointer<Base>(new Derive()).Unique());
+  EXPECT_FALSE(static_cast<bool>(SharedPointer<Base>()));
+  SharedPointer<Base>(new Derive(), Deleter<Derive>()).Get_deleter<void(*)(Derive*)>();
+  SharedPointer<Base>().Get_deleter<void(*)(Base*)>();
 }

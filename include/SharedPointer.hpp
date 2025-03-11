@@ -177,9 +177,9 @@ class SharedPointer final {
     r.ptr = nullptr;
   }
 
-  template <typename Y>
+  template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
   SharedPointer(SharedPointer<Y> &&r) {
-    this->ptr = r.ptr;
+    this->ptr = static_cast<T*>(r.ptr);
     this->control_block = r.control_block;
     r.control_block = nullptr;
     r.ptr = nullptr;
@@ -256,12 +256,15 @@ class SharedPointer final {
 
   template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
   SharedPointer &operator=(SharedPointer<Y> &&r) {
-    if (&r == this) {
+    if (reinterpret_cast<const void *>(&r) == reinterpret_cast<void *>(this)) {
       return *this;
     }
 
     this->ptr = r.ptr;
     r.ptr = nullptr;
+    if (nullptr != this->control_block) {
+      this->control_block->DecRef();
+    }
     this->control_block = r.control_block;
     r.control_block = nullptr;
 
@@ -277,17 +280,21 @@ class SharedPointer final {
 
   void Reset() {
     this->ptr = nullptr;
-    this->control_block->DecRef();
+    if (nullptr != this->control_block) {
+      this->control_block->DecRef();
+    }
   }
 
   template <typename Y>
   void Reset(Y *ptr) {
-    this->Swap(SharePointer(ptr));
+    SharedPointer tmp_sp(ptr);
+    this->Swap(tmp_sp);
   }
 
   template <typename Y, typename Deleter>
-  void Reset(Y *ptr, Deleter d) {
-    this->swap(SharedPointer(ptr, d));
+  void Reset(Y *ptr, Deleter &&d) {
+    SharedPointer tmp_sp(ptr, std::forward<Deleter>(d));
+    this->Swap(tmp_sp);
   }
 
   void Swap(SharedPointer &r) {
@@ -318,7 +325,7 @@ class SharedPointer final {
 
   template <typename Deleter>
   Deleter *Get_deleter() {
-    if (this->ptr) {
+    if (nullptr == this->ptr || nullptr == this->control_block) {
       return nullptr;
     } else {
       return static_cast<Deleter *>(this->control_block->Get_deleter(typeid(Deleter)));
