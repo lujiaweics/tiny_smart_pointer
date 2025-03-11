@@ -4,7 +4,7 @@ if [ -d "build" ];then
 fi
 
 mkdir build && cd build
-cmake ..
+cmake .. -DENABLE_COVERAGE=True
 if [ $? -eq 0 ];then
   cmake --build .
 fi

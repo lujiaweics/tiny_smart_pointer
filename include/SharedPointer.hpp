@@ -71,6 +71,9 @@ class SharedPointer final {
   template <typename>
   friend class SharedPointer;
 
+  template <typename>
+  friend class WeakPointer;
+
   template <typename, typename>
   friend class UniquePointer;
 
@@ -179,7 +182,7 @@ class SharedPointer final {
 
   template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
   SharedPointer(SharedPointer<Y> &&r) {
-    this->ptr = static_cast<T*>(r.ptr);
+    this->ptr = static_cast<T *>(r.ptr);
     this->control_block = r.control_block;
     r.control_block = nullptr;
     r.ptr = nullptr;
@@ -187,11 +190,11 @@ class SharedPointer final {
 
   template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
   SharedPointer(const WeakPointer<Y> &weak_pointer) {  // may throw bad_weak_ptr()
-    SharedPointer shared_pointer = weak_pointer.lock();
+    SharedPointer shared_pointer = weak_pointer.Lock();
     if (!shared_pointer) {
       throw "bad_weak_ptr";
     }
-    *this(shared_pointer);
+    *this = std::move(shared_pointer);
   }
 
   template <typename Y, typename Deleter, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
@@ -409,23 +412,30 @@ class WeakPointer final {
     }
   }
 
-  WeakPointer &operator=(const WeakPointer &r) { WeakPointer(r).swap(*this); }
+  WeakPointer &operator=(const WeakPointer &r) {
+    WeakPointer(r).Swap(*this);
+    return *this;
+  }
 
   template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
   WeakPointer &operator=(const WeakPointer<Y> &r) {
-    WeakPointer(r).swap(*this);
+    WeakPointer(r).Swap(*this);
   }
 
   template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
   WeakPointer &operator=(const SharedPointer<Y> &r) {
-    WeakPointer(r).swap(*this);
+    WeakPointer(r).Swap(*this);
+    return *this;
   }
 
-  WeakPointer &operator=(WeakPointer &&r) { WeakPointer(std::move(r)).swap(*this); }
+  WeakPointer &operator=(WeakPointer &&r) {
+    WeakPointer(std::move(r)).Swap(*this);
+    return *this;
+  }
 
   template <typename Y, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
   WeakPointer &operator=(WeakPointer<Y> &&r) {
-    WeakPointer(std::move(r)).swap(*this);
+    WeakPointer(std::move(r)).Swap(*this);
   }
 
   void Swap(WeakPointer &r) {
@@ -437,9 +447,9 @@ class WeakPointer final {
     this->control_block = tmp_cb_ptr;
   }
 
-  void Reset() { WeakPointer().swap(*this); }
+  void Reset() { WeakPointer().Swap(*this); }
 
-  long UseCount() {
+  long UseCount() const {
     if (nullptr == this->control_block) {
       return 0;
     } else {
@@ -449,7 +459,7 @@ class WeakPointer final {
 
   bool Expire() const { return 0 == this->UseCount(); }
 
-  SharedPointer<T> Lock() { return (this->Expire() ? SharedPointer<T>() : SharedPointer<T>(*this)); }
+  SharedPointer<T> Lock() const { return (this->Expire() ? SharedPointer<T>() : SharedPointer<T>(*this)); }
 
  private:
   T *ptr;
