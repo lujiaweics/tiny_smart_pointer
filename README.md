@@ -27,12 +27,19 @@
 ├── include/
 │ ├── SharedPointer.hpp # SharedPointer/WeakPointer及相关模板类
 │ └── UniquePointer.hpp # UniquePointer及相关模板类
+├── tools
+│ ├── generate_coverage.sh # 生成单元覆盖率脚本
+│ └── run_unitest.sh # 运行单元测试脚本
 ├── unitest/
-│ └── unitest.cpp # Google-Test单元测试用例
+| ├── common/
+| | └── utility.hpp # 单元测试公共头文件
+│ ├── main.cpp # Google-Test入口
+│ ├── test_sharedpointer.cpp # SharePointer单元测试文件
+│ ├── test_uniquepointer.cpp # UniquePointer单元测试文件
+│ └── test_weakpointer.cpp # WeakPointer单元测试文件
 ├── CMakeLists.txt # 项目构建文件
 ├── LICENSE # MIT许可证
-├── README.md # 文档文件
-└── run_test.sh # 编译并运行单元测试脚本
+└── README.md # 文档文件
 ```
 
 ## 🛠 构建与测试
@@ -40,8 +47,18 @@
 **环境要求**：CMake 3.10+, 支持C++20的编译器
 
 ```bash
-./run_test.sh
+# run unitest cases
+$ cd tools
+$ ./run_unitest.sh
 ```
+
+```bash
+# generate coverage file
+$ cd tools
+$ ./generate_coverage
+# see code coverage report in build/coverage_report/index.html
+```
+
 
 ## 🚧 开发状态
 当前为开发中版本，已实现的部分功能：
@@ -50,10 +67,11 @@
 3. SharedPointer基础功能
 4. WeakPointer基础功能
 5. Enable_shared_from_this基础功能
+6. SharedPointer和WeakPointer单元测试用例(行覆盖率大于90%)
 
 
 ## 🤝 参与贡献
 欢迎通过Issue提交建议或Pull Request参与改进！请确保：
 - 代码风格与现有代码保持一致
 - 新增功能需附带测试用例
-- 通过所有现有单元测试
+- 通过所有现有单元测试并确保行覆盖率不低于90%
