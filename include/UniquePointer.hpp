@@ -39,19 +39,16 @@ class UniquePointer {
 
   // move constructor
   UniquePointer(UniquePointer&& unique_pointer) {
-    this->pointer_ = std::move(unique_pointer.pointer_);
-    unique_pointer.pointer_ = nullptr;
-    this->deleter_ = std::move(unique_pointer.deleter_);
-    unique_pointer.deleter_ = std::move(std::default_delete<T>());
+    this->Reset(unique_pointer.Release());
   }
 
-  template <typename BaseType, typename = std::enable_if_t<std::is_base_of<T, BaseType>::value>>
-  UniquePointer(UniquePointer<BaseType>&& unique_pointer)
+  template <typename DerivedType, typename = std::enable_if_t<std::is_base_of<T, DerivedType>::value>>
+  UniquePointer(UniquePointer<DerivedType>&& unique_pointer)
       : pointer_(unique_pointer.Release()), deleter_(unique_pointer.Get_deleter()) {}
 
   // move assignment
-  template <typename BaseType, typename = std::enable_if<std::is_base_of<T, BaseType>::value>>
-  UniquePointer& operator=(UniquePointer<BaseType>&& rhs) {
+  template <typename DerivedType, typename = std::enable_if<std::is_base_of<T, DerivedType>::value>>
+  UniquePointer& operator=(UniquePointer<DerivedType>&& rhs) {
     if (this == &rhs) {
       return *this;
     }
@@ -59,7 +56,7 @@ class UniquePointer {
       deleter_(this->pointer_);
     }
     this->pointer_ = rhs.Release();
-    this->pointer = rhs.Get_deleter();
+    this->deleter_ = rhs.Get_deleter();
     return *this;
   }
 
@@ -71,9 +68,8 @@ class UniquePointer {
   T* operator->() const { return &(this->operator*()); }
 
   operator void*() const {
-    enum class IFNULL { NULL1 = 0 };
     if (nullptr == this->pointer_) {
-      return IFNULL::NULL1;
+      return reinterpret_cast<void*>(0);
     } else {
       return reinterpret_cast<void*>(this->pointer_);
     }
@@ -88,13 +84,12 @@ class UniquePointer {
 
   DecayedDeleter& Get_deleter() { return this->deleter_; }
 
-  void Reset(const T* new_pointer = nullptr) {
+  void Reset(T* new_pointer = nullptr) {
     if (this->pointer_ == new_pointer) {
       return;
     }
     // swap
-    UniquePointer tmp_unique_pointer(new_pointer);
-    std::move(*this, tmp_unique_pointer);
+    std::swap(this->pointer_, new_pointer);
   }
 
   T* Release() {
@@ -103,7 +98,7 @@ class UniquePointer {
     return dumb_pointer;
   }
 
-  void swap(UniquePointer& other) { std::swap(this->pointer_, other.pointer_); }
+  void Swap(UniquePointer& other) { std::swap(this->pointer_, other.pointer_); }
 
  private:
   T* pointer_;
