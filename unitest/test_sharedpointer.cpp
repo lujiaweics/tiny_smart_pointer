@@ -16,12 +16,12 @@ TEST(Constructor, SHARED_POINTER_TEST) {
   SharedPointer<int>(nullptr);
   SharedPointer<Base>(new Derive());
   SharedPointer<Base>(static_cast<Derive*>(nullptr));
-  SharedPointer<SharedFromThis>(new SharedFromThis());
+  SharedPointer<SharedFromThis>(new SharedFromThis());  // memory-leak
   SharedPointer<SharedFromThis>(static_cast<SharedFromThis*>(nullptr));
-  SharedPointer<Base>(new Derive(), Deleter<Derive>());
-  SharedPointer<Base>(static_cast<Derive*>(nullptr), Deleter<Derive>());
-  SharedPointer<SharedFromThis>(new SharedFromThis(), Deleter<Derive>());
-  SharedPointer<SharedFromThis>(static_cast<SharedFromThis*>(nullptr), Deleter<Derive>());
+  SharedPointer<Base>(new Derive(), Deleter<Base>());
+  SharedPointer<Base>(static_cast<Derive*>(nullptr), Deleter<Base>());
+  SharedPointer<SharedFromThis>(new SharedFromThis(), Deleter<SharedFromThis>());
+  SharedPointer<SharedFromThis>(static_cast<SharedFromThis*>(nullptr), Deleter<SharedFromThis>());
 
   {
     using Pair = std::pair<int, int>;
@@ -81,12 +81,12 @@ TEST(Assignment, SHARED_POINTER_TEST) {
 TEST(Member_Function, SHARED_POINTER_TEST) {
   SharedPointer<Base>(new Derive()).Reset();
   SharedPointer<Base>(new Derive()).Reset(new Derive());
-  SharedPointer<Base>(new Derive()).Reset(new Derive(), Deleter<Derive>());
+  SharedPointer<Base>(new Derive()).Reset(new Derive(), Deleter<Base>());
   SharedPointer<Base>(new Derive()).Get();
   EXPECT_EQ(SharedPointer<Base>(new Derive()).UseCount(), 1);
   EXPECT_EQ(SharedPointer<Base>().UseCount(), 0);
   EXPECT_TRUE(SharedPointer<Base>(new Derive()).Unique());
   EXPECT_FALSE(static_cast<bool>(SharedPointer<Base>()));
-  SharedPointer<Base>(new Derive(), Deleter<Derive>()).Get_deleter<void (*)(Derive*)>();
+  SharedPointer<Base>(new Derive(), Deleter<Base>()).Get_deleter<void (*)(Base*)>();
   SharedPointer<Base>().Get_deleter<void (*)(Base*)>();
 }

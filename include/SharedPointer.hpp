@@ -36,8 +36,11 @@ class ControlBlockBase {
   void IncRef() { this->shared_count.fetch_add(1, std::memory_order_relaxed); }
 
   void DecRef() {
-    if (1 == this->shared_count.fetch_add(-1, std::memory_order_acq_rel) && 0 == this->GetWeakCount()) {
-      delete this;
+    if (1 == this->shared_count.fetch_add(-1, std::memory_order_acq_rel)) {
+      this->Dispose();
+      if (0 == this->GetWeakCount()) {
+        delete this;
+      }
     }
   }
 
@@ -51,6 +54,8 @@ class ControlBlockBase {
 
   virtual void *Get_deleter(const std::type_info &) = 0;
 
+  virtual void Dispose() {}
+
  private:
   std::atomic<int> weak_count;
   std::atomic<int> shared_count;
@@ -59,14 +64,18 @@ class ControlBlockBase {
 template <typename T, typename Deleter = Defalut_Delete<T>>
 class ControlBlockImpl : public ControlBlockBase {
  public:
-  ControlBlockImpl(T *p) : ptr(p), _Del(Defalut_Delete<T>()) {}
-  ControlBlockImpl(T *p, Deleter &&d) : ptr(p), _Del(std::forward<Deleter>(d)) {}
+  ControlBlockImpl(T *p) : ptr(p), Del(Defalut_Delete<T>()) {}
+  ControlBlockImpl(T *p, Deleter &&d) : ptr(p), Del(std::forward<Deleter>(d)) {}
 
-  void *Get_deleter(const std::type_info &type) { return type == typeid(Deleter) ? &_Del : 0; }
+  void *Get_deleter(const std::type_info &type) { return type == typeid(Deleter) ? &Del : 0; }
+
+  void Dispose() override {
+    Del(ptr);
+  }
 
  private:
   T *ptr;
-  [[no_unique_address]] Deleter _Del;
+  [[no_unique_address]] Deleter Del;
 };
 
 template <typename T>
@@ -291,6 +300,7 @@ class SharedPointer final {
     this->ptr = nullptr;
     if (nullptr != this->control_block) {
       this->control_block->DecRef();
+      this->control_block = nullptr;
     }
   }
 

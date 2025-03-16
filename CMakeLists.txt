@@ -4,7 +4,7 @@ project(tiny_smart_pointer_unitest LANGUAGES CXX)
 option(ENABLE_COVERAGE "Enable code coverage" OFF)
 
 set(cxx_standard 20)
-add_compile_options(-Wall)
+add_compile_options(-Wall -g)
 
 find_package(GTest REQUIRED)
 find_package(Threads REQUIRED)
