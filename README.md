@@ -61,13 +61,7 @@ $ ./generate_coverage
 
 
 ## 🚧 开发状态
-当前为开发中版本，已实现的部分功能：
-1. UniquePointer基础功能
-2. MakeUnique函数
-3. SharedPointer基础功能
-4. WeakPointer基础功能
-5. Enable_shared_from_this基础功能
-6. SharedPointer和WeakPointer单元测试用例(行覆盖率大于90%)
+当前为开发中版本，已实现除make_shared和make_unique以外的全部功能。单元测试的行覆盖率大于95%，且引用计数的增加和减少符合线程安全标准。代码通过valgrind检测，无内存泄漏问题。
 
 
 ## 🤝 参与贡献

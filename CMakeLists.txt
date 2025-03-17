@@ -44,6 +44,7 @@ if(ENABLE_COVERAGE)
         -fno-inline
         -fno-inline-small-functions
         -fno-default-inline
+        -fno-exceptions
     )
 
     target_link_options(tiny_smart_pointer_unitest PRIVATE --coverage)
