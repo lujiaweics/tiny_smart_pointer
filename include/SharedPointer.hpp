@@ -355,6 +355,7 @@ class SharedPointer final {
       this->control_block->IncRef();
     } else {
       this->ptr = nullptr;
+      this->control_block = nullptr;
     }
   }
 };
