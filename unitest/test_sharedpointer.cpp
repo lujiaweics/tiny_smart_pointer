@@ -16,7 +16,7 @@ TEST(Constructor, SHARED_POINTER_TEST) {
   SharedPointer<int>(nullptr);
   SharedPointer<Base>(new Derive());
   SharedPointer<Base>(static_cast<Derive*>(nullptr));
-  SharedPointer<SharedFromThis>(new SharedFromThis());  // memory-leak
+  SharedPointer<SharedFromThis>(new SharedFromThis());
   SharedPointer<SharedFromThis>(static_cast<SharedFromThis*>(nullptr));
   SharedPointer<Base>(new Derive(), Deleter<Base>());
   SharedPointer<Base>(static_cast<Derive*>(nullptr), Deleter<Base>());

@@ -38,9 +38,7 @@ class UniquePointer {
   UniquePointer& operator=(const UniquePointer&) = delete;
 
   // move constructor
-  UniquePointer(UniquePointer&& unique_pointer) {
-    this->Reset(unique_pointer.Release());
-  }
+  UniquePointer(UniquePointer&& unique_pointer) { this->Reset(unique_pointer.Release()); }
 
   template <typename DerivedType, typename = std::enable_if_t<std::is_base_of<T, DerivedType>::value>>
   UniquePointer(UniquePointer<DerivedType>&& unique_pointer)

@@ -41,8 +41,8 @@ TEST(Member_Function, UNIQUE_POINTER_TEST) {
 
   {
     Base *base_ptr = new Base();
-    EXPECT_EQ(static_cast<void*>(UniquePointer<Base>(base_ptr)), reinterpret_cast<void*>(base_ptr));
-    EXPECT_EQ(static_cast<void*>(UniquePointer<Base>()), reinterpret_cast<void*>(0));
+    EXPECT_EQ(static_cast<void *>(UniquePointer<Base>(base_ptr)), reinterpret_cast<void *>(base_ptr));
+    EXPECT_EQ(static_cast<void *>(UniquePointer<Base>()), reinterpret_cast<void *>(0));
     EXPECT_FALSE(static_cast<bool>(UniquePointer<Base>()));
     EXPECT_TRUE(static_cast<bool>(UniquePointer<Base>(new Base())));
   }
@@ -52,10 +52,8 @@ TEST(Member_Function, UNIQUE_POINTER_TEST) {
     const UniquePointer<Base> p1;
     const auto autodeleter2 = p1.Get_deleter();
   }
-  
-  {
-    UniquePointer<Base>().Reset();
-  }
+
+  { UniquePointer<Base>().Reset(); }
 
   {
     UniquePointer<Base> p1(new Base());

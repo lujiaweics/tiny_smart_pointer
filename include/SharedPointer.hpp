@@ -36,11 +36,12 @@ class ControlBlockBase {
   void IncRef() { this->shared_count.fetch_add(1, std::memory_order_relaxed); }
 
   void DecRef() {
-    if (1 == this->shared_count.fetch_add(-1, std::memory_order_acq_rel)) {
+    auto now_cnt = this->shared_count.fetch_add(-1, std::memory_order_acq_rel) - 1;
+    if (0 == now_cnt && 0 == this->GetWeakCount()) {
       this->Dispose();
-      if (0 == this->GetWeakCount()) {
-        delete this;
-      }
+      delete this;
+    } else if (0 == now_cnt) {
+      this->Dispose();
     }
   }
 
@@ -69,9 +70,7 @@ class ControlBlockImpl : public ControlBlockBase {
 
   void *Get_deleter(const std::type_info &type) { return type == typeid(Deleter) ? &Del : 0; }
 
-  void Dispose() override {
-    Del(ptr);
-  }
+  void Dispose() override { Del(ptr); }
 
  private:
   T *ptr;
@@ -131,14 +130,9 @@ class SharedPointer final {
       typename Y, typename Deleter,
       typename = std::enable_if_t<std::is_convertible_v<Y, T> && !std::is_base_of_v<Enable_shared_from_this<Y>, Y>>>
   SharedPointer(Y *ptr, Deleter &&d) {
-    if (nullptr != ptr) {
-      this->ptr = ptr;
-      this->control_block = new ControlBlockImpl<T, Deleter>(ptr, std::forward<Deleter>(d));
-      this->control_block->IncRef();
-    } else {
-      this->ptr = nullptr;
-      this->control_block = new ControlBlockImpl<T, Deleter>(ptr, std::forward<Deleter>(d));
-    }
+    this->ptr = ptr;
+    this->control_block = new ControlBlockImpl<T, Deleter>(ptr, std::forward<Deleter>(d));
+    this->control_block->IncRef();
   }
 
   template <
@@ -147,10 +141,9 @@ class SharedPointer final {
       int = 0>
   SharedPointer(Y *ptr, Deleter &&d) {
     if (nullptr == ptr) {
-      this->ptr = ptr;
-      this->control_block = new ControlBlockImpl<T, Deleter>(ptr, std::forward<Deleter>(d));
+      this->ptr = nullptr;
+      this->control_block = nullptr;
     } else {
-      // enable_shared_from_this
       this->ptr = ptr;
       this->control_block = new ControlBlockImpl<T, Deleter>(ptr, std::forward<Deleter>(d));
       (static_cast<Enable_shared_from_this<T> *>(ptr))->Assign(this->ptr, this->control_block);
