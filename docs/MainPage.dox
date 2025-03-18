@@ -1,0 +1,59 @@
+/** 
+@mainpage Tiny Smart Pointer 智能指针库
+
+@author Garvey
+@date 2025-03-17
+
+@section introduction 项目介绍
+现代C++智能指针实现库，包含完整的三件套实现：
+- @ref UniquePointer : 独占所有权指针
+- @ref SharedPointer : 引用计数共享指针
+- @ref WeakPointer   : 观察指针
+
+@b 核心优势：
+- 零外部依赖（仅需C++20标准库）
+- 原子操作保证线程安全，内存模型降低操作粒度
+- 效率优化（EBCO、移动语义、完美转发）
+
+@section features 核心特性
+@subsection ownership_semantics 所有权语义
+| 指针类型        | 所有权 | 线程安全 |
+|----------------|--------|----------|
+| UniquePointer  | 独占   | 不需要   |
+| SharedPointer  | 共享   | ✅       |
+| WeakPointer    | 无     | ✅       |
+
+@section usage_examples 使用示例
+@code{.cpp}
+// 基本使用
+auto sp = SharedPointer<Resource>(new Resource());
+auto wp = WeakPointer<Resource>(sp);
+
+// 自定义删除器
+template <typename T>
+class Deleter {
+ public:
+  void operator()(T* pointer) { delete pointer; }
+};
+SharedPointer<FILE> file(fopen("data.bin","rb"), Deleter<FILE>());
+
+// 继承体系
+class Base {};
+class Derived : public Base {};
+SharedPointer<Base> sp = SharedPointer<Derived>(new Derived());
+@endcode
+
+@subsection thread_safety 线程安全保证
+- 引用计数操作使用原子变量
+- 使用`std::memory_order_relaxed`和`std::memory_order_acq_rel`提高并发效率
+
+@see 完整API文档：
+- @ref TinySmartPointer::UniquePointer
+- @ref TinySmartPointer::SharedPointer
+- @ref TinySmartPointer::WeakPointer
+
+@par 相关链接：
+- 项目主页：README.md
+- 单元测试：unitest/
+- 覆盖率报告：build/coverage_report/
+*/

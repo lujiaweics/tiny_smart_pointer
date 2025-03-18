@@ -48,9 +48,9 @@ TEST(Member_Function, UNIQUE_POINTER_TEST) {
   }
 
   {
-    auto deleter1 = UniquePointer<Base>().Get_deleter();
+    UniquePointer<Base>().Get_deleter();
     const UniquePointer<Base> p1;
-    const auto autodeleter2 = p1.Get_deleter();
+    p1.Get_deleter();
   }
 
   { UniquePointer<Base>().Reset(); }

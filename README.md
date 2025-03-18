@@ -1,14 +1,14 @@
-# TinySmartPointer 🧠
+# TinySmartPointer
 
 一个轻量级C++智能指针实现库，包含`UniquePointer`、`SharedPointer`和`WeakPointer`的核心功能实现，支持C++20及以上标准。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## ✨ 特性概览
+## 特性概览
 
 - **现代智能指针全家桶**
   - `UniquePointer`：独占所有权，支持自定义删除器
-  - `SharedPointer`：引用计数共享所有权
+  - `SharedPointer`：引用计数共享所有权，支持多态和自定义删除器
   - `WeakPointer`：打破循环引用的观察指针
 
 - **性能优化**
@@ -21,14 +21,18 @@
   - 原子引用计数操作（基于`std::atomic`）
   - 支持自定义删除器（支持函数指针/仿函数）
 
-## 📦 项目结构
+## 项目结构
 ```
 .
+├── docs/
+│ ├── Doxyfile # Doxygen配置文件
+│ └── MainPage.dox # Doxygen文档主页面
 ├── include/
 │ ├── SharedPointer.hpp # SharedPointer/WeakPointer及相关模板类
 │ └── UniquePointer.hpp # UniquePointer及相关模板类
 ├── tools
 │ ├── generate_coverage.sh # 生成单元覆盖率脚本
+| ├── generate_docs.sh # 生成本地文档
 │ └── run_unitest.sh # 运行单元测试脚本
 ├── unitest/
 | ├── common/
@@ -42,7 +46,7 @@
 └── README.md # 文档文件
 ```
 
-## 🛠 构建与测试
+## 构建与测试
 
 **环境要求**：CMake 3.10+, 支持C++20的编译器
 
@@ -59,13 +63,21 @@ $ ./generate_coverage
 # see code coverage report in build/coverage_report/index.html
 ```
 
+```bash
+# generate doxygen docs
+$ cd tools
+$ ./generate_docs.sh
+# see doxygen page in http://0.0.0.0:8000/
+```
 
-## 🚧 开发状态
-当前为开发中版本，已实现除make_shared和make_unique以外的全部功能。单元测试的行覆盖率大于95%，且引用计数的增加和减少符合线程安全标准。代码通过valgrind检测，无内存泄漏问题。
+
+## 开发状态
+当前为开发中版本，已实现除make_shared和make_unique以外的全部功能。单元测试的行覆盖率大于95%，且引用计数的增加和减少符合线程安全标准。代码通过valgrind检测，无内存泄漏问题。且具有完整的doxygen文档，可使用脚本一键生成
 
 
-## 🤝 参与贡献
+## 参与贡献
 欢迎通过Issue提交建议或Pull Request参与改进！请确保：
 - 代码风格与现有代码保持一致
 - 新增功能需附带测试用例
 - 通过所有现有单元测试并确保行覆盖率不低于90%
+- 对新增代码编写文档
