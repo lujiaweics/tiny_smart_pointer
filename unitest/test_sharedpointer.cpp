@@ -87,6 +87,6 @@ TEST(Member_Function, SHARED_POINTER_TEST) {
   EXPECT_EQ(SharedPointer<Base>().UseCount(), 0);
   EXPECT_TRUE(SharedPointer<Base>(new Derive()).Unique());
   EXPECT_FALSE(static_cast<bool>(SharedPointer<Base>()));
-  SharedPointer<Base>(new Derive(), Deleter<Base>()).Get_deleter<void (*)(Base*)>();
-  SharedPointer<Base>().Get_deleter<void (*)(Base*)>();
+  SharedPointer<Base>(new Derive(), Deleter<Base>()).GetDeleter<void (*)(Base*)>();
+  SharedPointer<Base>().GetDeleter<void (*)(Base*)>();
 }

@@ -86,7 +86,7 @@ class ControlBlockBase {
   /// @brief 获取删除器（接口）
   /// @param type 要查询的删除器类型信息
   /// @return 匹配的删除器指针，未找到返回nullptr
-  virtual void *Get_deleter(const std::type_info &) = 0;
+  virtual void *GetDeleter(const std::type_info &) = 0;
 
   /// @brief 资源释放接口
   virtual void Dispose() {}
@@ -104,25 +104,25 @@ class ControlBlockImpl : public ControlBlockBase {
  public:
   /// @brief 构造函数（使用默认删除器）
   /// @param p 要管理的原始指针
-  ControlBlockImpl(T *p) : ptr(p), Del(Defalut_Delete<T>()) {}
+  ControlBlockImpl(T *p) : ptr(p), del(Defalut_Delete<T>()) {}
 
   // @brief 构造函数（自定义删除器）
   /// @param p 要管理的原始指针
   /// @param d 删除器对象（右值引用）
-  ControlBlockImpl(T *p, Deleter &&d) : ptr(p), Del(std::forward<Deleter>(d)) {}
+  ControlBlockImpl(T *p, Deleter &&d) : ptr(p), del(std::forward<Deleter>(d)) {}
 
   /// @brief 获取删除器（实现）
   /// @param type 目标类型信息
   /// @return 若与传入的类型匹配，则返回删除器指针，否则返回nullptr
-  Deleter *Get_deleter(const std::type_info &type) { return type == typeid(Deleter) ? &Del : 0; }
+  Deleter *GetDeleter(const std::type_info &type) { return type == typeid(Deleter) ? &del : 0; }
 
   /// @brief 执行资源释放
   /// @note 调用存储的删除器释放资源
-  void Dispose() override { Del(ptr); }
+  void Dispose() override { del(ptr); }
 
  private:
   T *ptr;                             ///< 管理的原始指针
-  [[no_unique_address]] Deleter Del;  ///< 删除器实例（空基类优化）
+  [[no_unique_address]] Deleter del;  ///< 删除器实例（空基类优化）
 };
 
 /// @brief 共享指针类模板
@@ -304,7 +304,7 @@ class SharedPointer final {
   template <typename Y, typename Deleter, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
   SharedPointer(UniquePointer<Y, Deleter> &&r) {
     this->ptr = r.Get();
-    this->control_block = new ControlBlockImpl<Y, Deleter>(this->ptr, *(r.Get_deleter()));
+    this->control_block = new ControlBlockImpl<Y, Deleter>(this->ptr, *(r.GetDeleter()));
     this->control_block->IncRef();
     std::swap(r, UniquePointer<Y, Deleter>());
   }
@@ -386,7 +386,7 @@ class SharedPointer final {
   template <typename Y, typename Deleter, typename = std::enable_if_t<std::is_convertible_v<Y, T>>>
   SharedPointer &operator=(UniquePointer<Y, Deleter> &&r) {
     this->ptr = r.Release();
-    this->control_block = new ControlBlockImpl<Y, Deleter>(this->ptr, *(r.Get_deleter()));
+    this->control_block = new ControlBlockImpl<Y, Deleter>(this->ptr, *(r.GetDeleter()));
     this->control_block->IncRef();
   }
 
@@ -459,11 +459,11 @@ class SharedPointer final {
   /// @brief 获取特定类型的删除器
   /// @return 若存在匹配的删除器则返回指针，否则返回nullptr
   template <typename Deleter>
-  Deleter *Get_deleter() {
+  Deleter *GetDeleter() {
     if (nullptr == this->ptr || nullptr == this->control_block) {
       return nullptr;
     } else {
-      return static_cast<Deleter *>(this->control_block->Get_deleter(typeid(Deleter)));
+      return static_cast<Deleter *>(this->control_block->GetDeleter(typeid(Deleter)));
     }
   }
 

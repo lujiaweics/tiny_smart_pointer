@@ -27,27 +27,25 @@ class UniquePointer {
   using DecayedDeleter = typename std::decay_t<Deleter>;
 
   /// @brief 构造并接管指针所有权（带自定义删除器）
-  /// @tparam DeleterType 删除器类型
   /// @param pointer 要管理的原始指针
   /// @param deleter 删除器对象（右值引用）
-  template <typename DeleterType>
-  constexpr UniquePointer(T* pointer, DeleterType&& deleter)
-      : pointer_(static_cast<T*>(pointer)), deleter_(std::forward<DeleterType>(deleter)) {}
+  constexpr UniquePointer(T* pointer, Deleter&& deleter)
+      : ptr(static_cast<T*>(pointer)), del(std::forward<Deleter>(deleter)) {}
 
   /// @brief 构造并接管指针所有权（使用默认删除器）
   /// @param pointer 要管理的原始指针
   explicit constexpr UniquePointer(T* pointer)
-      : pointer_(static_cast<T*>(pointer)), deleter_(std::move(std::default_delete<T>())) {}
+      : ptr(static_cast<T*>(pointer)), del(std::move(std::default_delete<T>())) {}
 
   /// @brief 默认构造函数（空指针）
-  constexpr UniquePointer() : pointer_(nullptr) ,deleter_(std::move(std::default_delete<T>())){}
+  constexpr UniquePointer() : ptr(nullptr) ,del(std::move(std::default_delete<T>())){}
 
   /// @brief 析构函数
   /// @note 自动调用删除器释放资源
   ~UniquePointer() {
-    if (nullptr != pointer_) {
-      deleter_(pointer_);
-      pointer_ = nullptr;
+    if (nullptr != ptr) {
+      del(ptr);
+      ptr = nullptr;
     }
   }
 
@@ -62,27 +60,27 @@ class UniquePointer {
   UniquePointer(UniquePointer&& unique_pointer) { this->Reset(unique_pointer.Release()); }
 
   /// @brief 派生类移动构造函数
-  /// @tparam DerivedType 派生类类型
+  /// @tparam Derived 派生类类型
   /// @param unique_pointer 源派生类对象
   /// @note 使用SFINAE确保只有基类-派生类关系才能调用
-  template <typename DerivedType, typename = std::enable_if_t<std::is_base_of<T, DerivedType>::value>>
-  UniquePointer(UniquePointer<DerivedType>&& unique_pointer)
-      : pointer_(unique_pointer.Release()), deleter_(unique_pointer.Get_deleter()) {}
+  template <typename Derived, typename = std::enable_if_t<std::is_base_of<T, Derived>::value>>
+  UniquePointer(UniquePointer<Derived>&& unique_pointer)
+      : ptr(unique_pointer.Release()), del(unique_pointer.GetDeleter()) {}
 
   /// @brief 移动赋值运算符
-  /// @tparam DerivedType 派生类类型
+  /// @tparam Derived 派生类类型
   /// @param rhs 右值源对象
   /// @return 当前对象的引用
-  template <typename DerivedType, typename = std::enable_if<std::is_base_of<T, DerivedType>::value>>
-  UniquePointer& operator=(UniquePointer<DerivedType>&& rhs) {
+  template <typename Derived, typename = std::enable_if<std::is_base_of<T, Derived>::value>>
+  UniquePointer& operator=(UniquePointer<Derived>&& rhs) {
     if (this == &rhs) {
       return *this;
     }
-    if (nullptr != this->pointer_) {
-      deleter_(this->pointer_);
+    if (nullptr != this->ptr) {
+      del(this->ptr);
     }
-    this->pointer_ = rhs.Release();
-    this->deleter_ = rhs.Get_deleter();
+    this->ptr = rhs.Release();
+    this->del = rhs.GetDeleter();
     return *this;
   }
 
@@ -90,8 +88,8 @@ class UniquePointer {
   /// @return 管理对象的引用
   /// @warning 对空指针解引用会导致断言失败
   T& operator*() const {
-    assert(nullptr != this->pointer_);
-    return *(this->pointer_);
+    assert(nullptr != this->ptr);
+    return *(this->ptr);
   }
 
   /// @brief 成员访问运算符
@@ -102,7 +100,7 @@ class UniquePointer {
   /// @return 指针的void*表示
   /// @note 用于布尔上下文判断，空指针返回0的void*表示
   operator void*() const {
-    return nullptr != this->pointer_ ? reinterpret_cast<void*>(this->pointer_) : reinterpret_cast<void*>(0);
+    return nullptr != this->ptr ? reinterpret_cast<void*>(this->ptr) : reinterpret_cast<void*>(0);
   }
 
   /// @brief 显式布尔转换
@@ -111,42 +109,42 @@ class UniquePointer {
 
   /// @brief 获取原始指针
   /// @return 管理的原始指针（不转移所有权）
-  T* Get() const { return this->pointer_; }
+  T* Get() const { return this->ptr; }
 
   /// @brief 获取删除器（const版本）
   /// @return 当前删除器的const引用
-  const DecayedDeleter& Get_deleter() const { return this->deleter_; }
+  const DecayedDeleter& GetDeleter() const { return this->del; }
 
   /// @brief 获取删除器（非const版本）
   /// @return 当前删除器的引用
-  DecayedDeleter& Get_deleter() { return this->deleter_; }
+  DecayedDeleter& GetDeleter() { return this->del; }
 
   /// @brief 重置管理的指针
   /// @param new_pointer 新指针（默认为nullptr）
   /// @note 会先释放当前指针再接管新指针
   void Reset(T* new_pointer = nullptr) {
-    if (this->pointer_ == new_pointer) {
+    if (this->ptr == new_pointer) {
       return;
     }
-    std::swap(this->pointer_, new_pointer);
+    std::swap(this->ptr, new_pointer);
   }
 
   /// @brief 释放指针所有权
   /// @return 被释放的原始指针
   /// @note 调用后对象不再管理该指针
   T* Release() {
-    T* dumb_pointer = this->pointer_;
-    this->pointer_ = nullptr;
-    return dumb_pointer;
+    T* raw_pointer = this->ptr;
+    this->ptr = nullptr;
+    return raw_pointer;
   }
 
   /// @brief 交换两个UniquePointer
   /// @param other 另一个UniquePointer对象
-  void Swap(UniquePointer& other) { std::swap(this->pointer_, other.pointer_); }
+  void Swap(UniquePointer& other) { std::swap(this->ptr, other.ptr); }
 
  private:
-  T* pointer_;                                    ///< 管理的原始指针
-  [[no_unique_address]] DecayedDeleter deleter_;  ///< 删除器实例
+  T* ptr;                                    ///< 管理的原始指针
+  [[no_unique_address]] DecayedDeleter del;  ///< 删除器实例
 };
 
 /// @brief 创建UniquePointer的工厂函数
